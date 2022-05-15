@@ -4,11 +4,11 @@ package main
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"log"
 	"net"
-	"strings"
 	"time"
 
 	_ "github.com/go-sql-driver/mysql"
@@ -19,53 +19,77 @@ import (
 
 var (
 	port = flag.Int("port", 50051, "The server port")
-	data = []*pb.Book{
-		{
-			Title:   "Harry Potter and the Half-Blood Prince (Harry Potter  #6)",
-			Authors: []string{"J.K. Rowling", "Mary GrandPré"},
-			Content: "ABOBAABOBAABOBA",
-		}, {
-			Title:   "The Ultimate Hitchhiker's Guide: Five Complete Novels and One Story (Hitchhiker's Guide to the Galaxy  #1-5)",
-			Authors: []string{"Douglas Adams"},
-			Content: "zzzzzzzzzzzzzzzzzzzzzz",
-		},
-	}
 )
 
 type server struct {
-	pb.UnsafeBookSearchServer
+	pb.UnimplementedBookSearchServer
+	db *sql.DB
+}
+
+func readBookRows(rows *sql.Rows) ([]*pb.Book, error) {
+	res := make([]*pb.Book, 0)
+	var (
+		authors     []byte
+		bookTitle   string
+		bookContent string
+		authorsList []string
+	)
+	for rows.Next() {
+		rows.Scan(&authors, &bookTitle, &bookContent)
+		if err := json.Unmarshal(authors, &authorsList); err != nil {
+			return nil, err
+		}
+		res = append(res, &pb.Book{
+			Authors: authorsList,
+			Title:   bookTitle,
+			Content: bookContent,
+		})
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return res, nil
 }
 
 func (s *server) Search(ctx context.Context, in *pb.SearchRequest) (*pb.SearchReply, error) {
-	res := make([]*pb.Book, 0)
-	db, err := sql.Open("mysql", "root:pass@/books")
-	if err != nil {
-		return nil, err
-	}
-	db.SetConnMaxLifetime(time.Minute * 3)
-	db.SetMaxOpenConns(10)
-	db.SetMaxIdleConns(10)
-	if err = db.PingContext(ctx); err != nil {
-		return nil, err
-	}
-	fmt.Println(db.ExecContext(ctx, "SELECT 1;"))
+	var res []*pb.Book
 	switch req := in.Request.(type) {
 	case *pb.SearchRequest_ByAuthor:
 		log.Printf("Received by author request: %v", req.ByAuthor)
-		for _, book := range data {
-			for _, author := range book.Authors {
-				if strings.Contains(author, req.ByAuthor) {
-					res = append(res, book)
-					break
-				}
-			}
+		rows, err := s.db.QueryContext(ctx, `
+			WITH authors AS (
+				SELECT book_id
+				FROM book_list
+				WHERE author_name LIKE CONCAT('%', ?, '%')
+			)
+			SELECT JSON_ARRAYAGG(author_name) AS authors, book_title, book_content
+			FROM book_list
+			GROUP BY book_id
+			HAVING book_id IN (select * from authors);
+		`, req.ByAuthor)
+		if err != nil {
+			return nil, err
+		}
+		if res, err = readBookRows(rows); err != nil {
+			return nil, err
 		}
 	case *pb.SearchRequest_ByContent:
 		log.Printf("Received by content request %v", req.ByContent)
-		for _, book := range data {
-			if strings.Contains(book.Content, req.ByContent) {
-				res = append(res, book)
-			}
+		rows, err := s.db.QueryContext(ctx, `
+			SELECT JSON_ARRAYAGG(author_name) AS authors, book_title, book_content
+			FROM book_list
+			GROUP BY book_id
+			HAVING book_id IN (
+				SELECT id
+				FROM book
+				WHERE content LIKE CONCAT('%', ?, '%')
+			);
+		`, req.ByContent)
+		if err != nil {
+			return nil, err
+		}
+		if res, err = readBookRows(rows); err != nil {
+			return nil, err
 		}
 	}
 	return &pb.SearchReply{Books: res}, nil
@@ -78,9 +102,23 @@ func main() {
 		log.Fatalf("failed to listen: %v", err)
 	}
 	s := grpc.NewServer()
-	pb.RegisterBookSearchServer(s, &server{})
+	db, err := sql.Open("mysql", "root:pass@/books")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer db.Close()
+	db.SetConnMaxLifetime(time.Minute * 3)
+	db.SetMaxOpenConns(10)
+	db.SetMaxIdleConns(10)
+	ctx := context.Background()
+	if err = db.PingContext(ctx); err != nil {
+		log.Fatal(err)
+	}
+	srv := server{db: db}
+	pb.RegisterBookSearchServer(s, &srv)
 	log.Printf("server listening at %v", lis.Addr())
 	if err := s.Serve(lis); err != nil {
 		log.Fatalf("failed to serve: %v", err)
 	}
+	// TODO: graceful exit
 }

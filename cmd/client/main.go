@@ -32,14 +32,14 @@ func printBooks(books []*pb.Book) {
 		fmt.Println("No books found")
 		return
 	}
-	fmt.Printf("Found %d books (showing only first 10 chars of content):\n", len(books))
+	fmt.Printf("Found %d books (showing only first 20 chars of content):\n", len(books))
 	for _, book := range books {
 		fmt.Printf("Title: %s\n", book.Title)
 		fmt.Println("Authors:")
 		for _, author := range book.Authors {
 			fmt.Printf("    %s\n", author)
 		}
-		fmt.Printf("Content:\n%s\n\n", book.Content[:10])
+		fmt.Printf("Content:\n%s\n\n", string([]rune(book.Content)[:20]))
 	}
 }
 
