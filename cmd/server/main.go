@@ -8,7 +8,7 @@ import (
 	"log"
 	"net"
 
-	pb "github.com/rprtr258/kvadotest/pkg"
+	pb "github.com/rprtr258/kvadotest/api"
 	"google.golang.org/grpc"
 )
 

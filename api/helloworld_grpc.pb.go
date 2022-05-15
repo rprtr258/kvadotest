@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.2.0
 // - protoc             v3.12.4
-// source: pkg/helloworld.proto
+// source: api/helloworld.proto
 
 package kvadotest
 
@@ -103,5 +103,5 @@ var Greeter_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "pkg/helloworld.proto",
+	Metadata: "api/helloworld.proto",
 }
