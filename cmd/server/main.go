@@ -46,7 +46,7 @@ func (s *server) Search(ctx context.Context, in *pb.SearchRequest) (*pb.SearchRe
 			}
 		}
 	case *pb.SearchRequest_ByContent:
-		log.Printf("Received: by content request %v", req.ByContent)
+		log.Printf("Received by content request %v", req.ByContent)
 		for _, book := range data {
 			if strings.Contains(book.Content, req.ByContent) {
 				res = append(res, book)
