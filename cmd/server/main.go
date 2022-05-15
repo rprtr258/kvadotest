@@ -16,15 +16,18 @@ var (
 	port = flag.Int("port", 50051, "The server port")
 )
 
-// server is used to implement helloworld.GreeterServer.
 type server struct {
-	pb.UnimplementedGreeterServer
+	pb.UnsafeBookSearchServer
 }
 
-// SayHello implements helloworld.GreeterServer
-func (s *server) SayHello(ctx context.Context, in *pb.HelloRequest) (*pb.HelloReply, error) {
-	log.Printf("Received: %v", in.GetName())
-	return &pb.HelloReply{Message: "Hello " + in.GetName()}, nil
+func (s *server) Search(ctx context.Context, in *pb.SearchRequest) (*pb.SearchReply, error) {
+	switch req := in.Request.(type) {
+	case *pb.SearchRequest_ByAuthor:
+		log.Printf("Received: %v %[1]T", req.ByAuthor)
+	case *pb.SearchRequest_ByContent:
+		log.Printf("Received: %v %[1]T", req.ByContent)
+	}
+	return &pb.SearchReply{Books: []*pb.Book{}}, nil
 }
 
 func main() {
@@ -34,7 +37,7 @@ func main() {
 		log.Fatalf("failed to listen: %v", err)
 	}
 	s := grpc.NewServer()
-	pb.RegisterGreeterServer(s, &server{})
+	pb.RegisterBookSearchServer(s, &server{})
 	log.Printf("server listening at %v", lis.Addr())
 	if err := s.Serve(lis); err != nil {
 		log.Fatalf("failed to serve: %v", err)

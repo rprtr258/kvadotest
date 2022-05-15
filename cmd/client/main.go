@@ -29,14 +29,20 @@ func main() {
 		log.Fatalf("did not connect: %v", err)
 	}
 	defer conn.Close()
-	c := pb.NewGreeterClient(conn)
+	c := pb.NewBookSearchClient(conn)
 
 	// Contact the server and print out its response.
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
-	r, err := c.SayHello(ctx, &pb.HelloRequest{Name: *name})
+	r, err := c.Search(ctx, &pb.SearchRequest{Request: &pb.SearchRequest_ByAuthor{ByAuthor: "author"}})
 	if err != nil {
 		log.Fatalf("could not greet: %v", err)
 	}
-	log.Printf("Greeting: %s", r.GetMessage())
+	log.Printf("Greeting: %s", r.GetBooks())
+
+	r2, err := c.Search(ctx, &pb.SearchRequest{Request: &pb.SearchRequest_ByContent{ByContent: "content"}})
+	if err != nil {
+		log.Fatalf("could not greet: %v", err)
+	}
+	log.Printf("Greeting: %s", r2.GetBooks())
 }
