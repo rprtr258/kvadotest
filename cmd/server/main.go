@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"strings"
 
 	pb "github.com/rprtr258/kvadotest/api"
 	"google.golang.org/grpc"
@@ -14,6 +15,17 @@ import (
 
 var (
 	port = flag.Int("port", 50051, "The server port")
+	data = []*pb.Book{
+		{
+			Title:   "Harry Potter and the Half-Blood Prince (Harry Potter  #6)",
+			Authors: []string{"J.K. Rowling", "Mary GrandPré"},
+			Content: "ABOBAABOBAABOBA",
+		}, {
+			Title:   "The Ultimate Hitchhiker's Guide: Five Complete Novels and One Story (Hitchhiker's Guide to the Galaxy  #1-5)",
+			Authors: []string{"Douglas Adams"},
+			Content: "zzzzzzzzzzzzzzzzzzzzzz",
+		},
+	}
 )
 
 type server struct {
@@ -21,13 +33,27 @@ type server struct {
 }
 
 func (s *server) Search(ctx context.Context, in *pb.SearchRequest) (*pb.SearchReply, error) {
+	res := make([]*pb.Book, 0)
 	switch req := in.Request.(type) {
 	case *pb.SearchRequest_ByAuthor:
 		log.Printf("Received by author request: %v", req.ByAuthor)
+		for _, book := range data {
+			for _, author := range book.Authors {
+				if strings.Contains(author, req.ByAuthor) {
+					res = append(res, book)
+					break
+				}
+			}
+		}
 	case *pb.SearchRequest_ByContent:
 		log.Printf("Received: by content request %v", req.ByContent)
+		for _, book := range data {
+			if strings.Contains(book.Content, req.ByContent) {
+				res = append(res, book)
+			}
+		}
 	}
-	return &pb.SearchReply{Books: []*pb.Book{}}, nil
+	return &pb.SearchReply{Books: res}, nil
 }
 
 func main() {

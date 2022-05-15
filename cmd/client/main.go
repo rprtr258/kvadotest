@@ -33,8 +33,13 @@ func printBooks(books []*pb.Book) {
 		return
 	}
 	fmt.Printf("Found %d books (showing only first 10 chars of content):\n", len(books))
-	for i, book := range books {
-		fmt.Printf("%d. Author=%q Title=%q Content:\n%s", i, book.Author, book.Title, book.Content[:10])
+	for _, book := range books {
+		fmt.Printf("Title: %s\n", book.Title)
+		fmt.Println("Authors:")
+		for _, author := range book.Authors {
+			fmt.Printf("    %s\n", author)
+		}
+		fmt.Printf("Content:\n%s\n\n", book.Content[:10])
 	}
 }
 
@@ -62,7 +67,7 @@ func main() {
 		}
 		printBooks(books)
 	} else if len(*needle) != 0 {
-		books, err := doRequest(ctx, c, &pb.SearchRequest{Request: &pb.SearchRequest_ByAuthor{ByAuthor: *author}})
+		books, err := doRequest(ctx, c, &pb.SearchRequest{Request: &pb.SearchRequest_ByContent{ByContent: *needle}})
 		if err != nil {
 			log.Fatalf("couldn't search by content: %v", err)
 		}
