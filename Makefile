@@ -6,5 +6,8 @@ build: api/booksearch_grpc.pb.go api/booksearch.pb.go
 server:
 	go run cmd/server/main.go
 
-client:
-	go run cmd/client/main.go
+authorclient:
+	go run cmd/client/main.go -author Pushkin
+
+needleclient:
+	go run cmd/client/main.go -needle Aboba

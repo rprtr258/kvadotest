@@ -23,9 +23,9 @@ type server struct {
 func (s *server) Search(ctx context.Context, in *pb.SearchRequest) (*pb.SearchReply, error) {
 	switch req := in.Request.(type) {
 	case *pb.SearchRequest_ByAuthor:
-		log.Printf("Received: %v %[1]T", req.ByAuthor)
+		log.Printf("Received by author request: %v", req.ByAuthor)
 	case *pb.SearchRequest_ByContent:
-		log.Printf("Received: %v %[1]T", req.ByContent)
+		log.Printf("Received: by content request %v", req.ByContent)
 	}
 	return &pb.SearchReply{Books: []*pb.Book{}}, nil
 }
