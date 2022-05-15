@@ -1,13 +1,17 @@
-// Package main implements a server for Greeter service.
+// Package main implements a server for BookSearch service.
 package main
 
 import (
 	"context"
+	"database/sql"
 	"flag"
 	"fmt"
 	"log"
 	"net"
 	"strings"
+	"time"
+
+	_ "github.com/go-sql-driver/mysql"
 
 	pb "github.com/rprtr258/kvadotest/api"
 	"google.golang.org/grpc"
@@ -34,6 +38,17 @@ type server struct {
 
 func (s *server) Search(ctx context.Context, in *pb.SearchRequest) (*pb.SearchReply, error) {
 	res := make([]*pb.Book, 0)
+	db, err := sql.Open("mysql", "root:pass@/books")
+	if err != nil {
+		return nil, err
+	}
+	db.SetConnMaxLifetime(time.Minute * 3)
+	db.SetMaxOpenConns(10)
+	db.SetMaxIdleConns(10)
+	if err = db.PingContext(ctx); err != nil {
+		return nil, err
+	}
+	fmt.Println(db.ExecContext(ctx, "SELECT 1;"))
 	switch req := in.Request.(type) {
 	case *pb.SearchRequest_ByAuthor:
 		log.Printf("Received by author request: %v", req.ByAuthor)
