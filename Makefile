@@ -7,7 +7,7 @@ server:
 	go run cmd/server/main.go
 
 authorclient:
-	go run cmd/client/main.go -author Pushkin
+	go run cmd/client/main.go -author Rowling
 
 needleclient:
-	go run cmd/client/main.go -needle Aboba
+	go run cmd/client/main.go -needle ABOBA
