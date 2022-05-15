@@ -1,4 +1,4 @@
-// Package main implements a client for Greeter service.
+// Package main implements a client for BookSearch service.
 package main
 
 import (
