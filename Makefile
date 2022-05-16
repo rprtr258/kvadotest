@@ -5,7 +5,7 @@ filldb:
 	docker exec -i mysql mysql -uroot -p"pass" -D books < assets/sample_db.sql
 
 tests:
-	go test test/server_test.go
+	go test -v github.com/rprtr258/kvadotest/test
 
 protoc: api/booksearch_grpc.pb.go api/booksearch.pb.go
 
