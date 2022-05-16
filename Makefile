@@ -4,7 +4,7 @@ api/booksearch_grpc.pb.go api/booksearch.pb.go: api/booksearch.proto
 filldb:
 	docker exec -i mysql mysql -uroot -p"pass" -D books < assets/sample_db.sql
 
-test:
+tests:
 	go test test/server_test.go
 
 protoc: api/booksearch_grpc.pb.go api/booksearch.pb.go

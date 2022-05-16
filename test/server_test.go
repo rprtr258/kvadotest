@@ -27,13 +27,13 @@ func TestSearchRequests(t *testing.T) {
 			searchRequest: pb.SearchRequest{Request: &pb.SearchRequest_ByContent{ByContent: "needle"}},
 		},
 	}
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	booksRepo := repositories.NewMockBooksRepository(ctrl)
+	srv := internal.NewServer(booksRepo)
+	ctx := context.Background()
 	for i := 0; i < len(tests); i++ {
 		test := &tests[i]
-		ctrl := gomock.NewController(t)
-		defer ctrl.Finish()
-		booksRepo := repositories.NewMockBooksRepository(ctrl)
-		srv := internal.NewServer(booksRepo)
-		ctx := context.Background()
 		test.expecting(booksRepo.EXPECT())
 		_, err := srv.Search(ctx, &test.searchRequest)
 		if err != nil {
