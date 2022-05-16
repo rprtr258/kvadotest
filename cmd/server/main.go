@@ -21,13 +21,24 @@ var (
 	port = flag.Int("port", 50051, "The server port")
 )
 
-type server struct {
-	pb.UnimplementedBookSearchServer
+type Book struct {
+	Title   string
+	Content string
+	Authors []string
+}
+
+type BooksRepository interface {
+	SearchByAuthor(context.Context, string) ([]Book, error)
+	SearchByTitle(context.Context, string) ([]Book, error)
+	SearchByContent(context.Context, string) ([]Book, error)
+}
+
+type MysqlBooksRepository struct {
 	db *sql.DB
 }
 
-func readBookRows(rows *sql.Rows) ([]*pb.Book, error) {
-	res := make([]*pb.Book, 0)
+func readBookRows(rows *sql.Rows) ([]Book, error) {
+	res := make([]Book, 0)
 	var (
 		authors     []byte
 		bookTitle   string
@@ -39,7 +50,7 @@ func readBookRows(rows *sql.Rows) ([]*pb.Book, error) {
 		if err := json.Unmarshal(authors, &authorsList); err != nil {
 			return nil, err
 		}
-		res = append(res, &pb.Book{
+		res = append(res, Book{
 			Authors: authorsList,
 			Title:   bookTitle,
 			Content: bookContent,
@@ -51,50 +62,93 @@ func readBookRows(rows *sql.Rows) ([]*pb.Book, error) {
 	return res, nil
 }
 
-func (s *server) Search(ctx context.Context, in *pb.SearchRequest) (*pb.SearchReply, error) {
+func (repo MysqlBooksRepository) SearchByAuthor(ctx context.Context, req string) ([]Book, error) {
 	var (
-		res  []*pb.Book
 		rows *sql.Rows
 		err  error
 	)
-	switch req := in.Request.(type) {
-	case *pb.SearchRequest_ByAuthor:
-		log.Printf("Received by author request: %v", req.ByAuthor)
-		rows, err = s.db.QueryContext(ctx, `
-			WITH authors AS (
-				SELECT book_id
-				FROM book_list
-				WHERE author_name LIKE CONCAT('%', ?, '%')
-			)
-			SELECT JSON_ARRAYAGG(author_name) AS authors, book_title, book_content
+	rows, err = repo.db.QueryContext(ctx, `
+		WITH authors AS (
+			SELECT book_id
 			FROM book_list
-			GROUP BY book_id
-			HAVING book_id IN (select * from authors);
-		`, req.ByAuthor)
-	case *pb.SearchRequest_ByContent:
-		log.Printf("Received by content request %v", req.ByContent)
-		rows, err = s.db.QueryContext(ctx, `
-			SELECT JSON_ARRAYAGG(author_name) AS authors, book_title, book_content
-			FROM book_list
-			WHERE book_content LIKE CONCAT('%', ?, '%')
-			GROUP BY book_id;
-		`, req.ByContent)
-	case *pb.SearchRequest_ByTitle:
-		log.Printf("Received by title request %v", req.ByTitle)
-		rows, err = s.db.QueryContext(ctx, `
+			WHERE author_name LIKE CONCAT('%', ?, '%')
+		)
+		SELECT JSON_ARRAYAGG(author_name) AS authors, book_title, book_content
+		FROM book_list
+		GROUP BY book_id
+		HAVING book_id IN (select * from authors);
+	`, req)
+	if err != nil {
+		return nil, err
+	}
+	return readBookRows(rows)
+}
+func (repo MysqlBooksRepository) SearchByTitle(ctx context.Context, req string) ([]Book, error) {
+	var (
+		rows *sql.Rows
+		err  error
+	)
+	rows, err = repo.db.QueryContext(ctx, `
 			SELECT JSON_ARRAYAGG(author_name) AS authors, book_title, book_content
 			FROM book_list
 			WHERE book_title LIKE CONCAT('%', ?, '%')
 			GROUP BY book_id;
-		`, req.ByTitle)
+		`, req)
+	if err != nil {
+		return nil, err
+	}
+	return readBookRows(rows)
+}
+func (repo MysqlBooksRepository) SearchByContent(ctx context.Context, req string) ([]Book, error) {
+	var (
+		rows *sql.Rows
+		err  error
+	)
+	rows, err = repo.db.QueryContext(ctx, `
+			SELECT JSON_ARRAYAGG(author_name) AS authors, book_title, book_content
+			FROM book_list
+			WHERE book_content LIKE CONCAT('%', ?, '%')
+			GROUP BY book_id;
+		`, req)
+	if err != nil {
+		return nil, err
+	}
+	return readBookRows(rows)
+}
+
+type server struct {
+	pb.UnimplementedBookSearchServer
+	booksRepo BooksRepository
+}
+
+func (s *server) Search(ctx context.Context, in *pb.SearchRequest) (*pb.SearchReply, error) {
+	var (
+		res []Book
+		err error
+	)
+	switch req := in.Request.(type) {
+	case *pb.SearchRequest_ByAuthor:
+		log.Printf("Received by author request: %v", req.ByAuthor)
+		res, err = s.booksRepo.SearchByAuthor(ctx, req.ByAuthor)
+	case *pb.SearchRequest_ByContent:
+		log.Printf("Received by content request %v", req.ByContent)
+		res, err = s.booksRepo.SearchByContent(ctx, req.ByContent)
+	case *pb.SearchRequest_ByTitle:
+		log.Printf("Received by title request %v", req.ByTitle)
+		res, err = s.booksRepo.SearchByTitle(ctx, req.ByTitle)
 	}
 	if err != nil {
 		return nil, err
 	}
-	if res, err = readBookRows(rows); err != nil {
-		return nil, err
+	pbBooks := make([]*pb.Book, len(res))
+	for i, book := range res {
+		pbBooks[i] = &pb.Book{
+			Authors: book.Authors,
+			Title:   book.Title,
+			Content: book.Content,
+		}
 	}
-	return &pb.SearchReply{Books: res}, nil
+	return &pb.SearchReply{Books: pbBooks}, nil
 }
 
 func main() {
@@ -116,7 +170,7 @@ func main() {
 	if err = db.PingContext(ctx); err != nil {
 		log.Fatal(err)
 	}
-	srv := server{db: db}
+	srv := server{booksRepo: MysqlBooksRepository{db}}
 	pb.RegisterBookSearchServer(s, &srv)
 	log.Printf("server listening at %v", lis.Addr())
 	if err := s.Serve(lis); err != nil {
