@@ -3,6 +3,9 @@ api/booksearch_grpc.pb.go api/booksearch.pb.go: api/booksearch.proto
 
 protoc: api/booksearch_grpc.pb.go api/booksearch.pb.go
 
+dockerrun:
+	docker-compose -f deployments/docker-compose.yml up --build
+
 server:
 	go run cmd/server/main.go
 

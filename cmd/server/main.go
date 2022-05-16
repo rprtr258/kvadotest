@@ -8,8 +8,6 @@ import (
 	"log"
 	"net"
 
-	_ "github.com/go-sql-driver/mysql"
-
 	pb "github.com/rprtr258/kvadotest/api"
 	"github.com/rprtr258/kvadotest/internal/repositories"
 	"google.golang.org/grpc"

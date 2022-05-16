@@ -3,9 +3,12 @@ package repositories
 import (
 	"context"
 	"database/sql"
+	"database/sql/driver"
 	"encoding/json"
+	"log"
 	"time"
 
+	_ "github.com/go-sql-driver/mysql"
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/mysql"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
@@ -23,6 +26,24 @@ func NewMysqlRepository(dataSourceName string) (*MysqlBooksRepository, error) {
 	db.SetConnMaxLifetime(time.Minute * 3)
 	db.SetMaxOpenConns(10)
 	db.SetMaxIdleConns(10)
+	ctx := context.Background()
+	attempts := 0
+	for {
+		if err = db.PingContext(ctx); err != nil {
+			if err == driver.ErrBadConn {
+				attempts++
+				log.Printf("Failed to connect, attempt #%d", attempts)
+				time.Sleep(time.Second)
+			} else {
+				return nil, err
+			}
+			if attempts == 10 {
+				return nil, err
+			}
+		} else {
+			break
+		}
+	}
 	driver, err := mysql.WithInstance(db, &mysql.Config{})
 	if err != nil {
 		return nil, err
@@ -31,11 +52,7 @@ func NewMysqlRepository(dataSourceName string) (*MysqlBooksRepository, error) {
 	if err != nil {
 		return nil, err
 	}
-	if err := m.Up(); err != nil {
-		return nil, err
-	}
-	ctx := context.Background()
-	if err = db.PingContext(ctx); err != nil {
+	if err := m.Up(); err != nil && err != migrate.ErrNoChange {
 		return nil, err
 	}
 	return &MysqlBooksRepository{
