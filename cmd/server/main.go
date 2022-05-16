@@ -61,7 +61,7 @@ func main() {
 		log.Fatalf("failed to listen: %v", err)
 	}
 	s := grpc.NewServer()
-	booksRepo, err := repositories.NewMysqlRepository("root:pass@/books")
+	booksRepo, err := repositories.NewMysqlRepository("root:pass@/books?multiStatements=true")
 	if err != nil {
 		log.Fatalf("failed to connect to database: %v", err)
 	}

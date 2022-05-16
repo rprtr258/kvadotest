@@ -5,6 +5,10 @@ import (
 	"database/sql"
 	"encoding/json"
 	"time"
+
+	"github.com/golang-migrate/migrate/v4"
+	"github.com/golang-migrate/migrate/v4/database/mysql"
+	_ "github.com/golang-migrate/migrate/v4/source/file"
 )
 
 type MysqlBooksRepository struct {
@@ -19,6 +23,17 @@ func NewMysqlRepository(dataSourceName string) (*MysqlBooksRepository, error) {
 	db.SetConnMaxLifetime(time.Minute * 3)
 	db.SetMaxOpenConns(10)
 	db.SetMaxIdleConns(10)
+	driver, err := mysql.WithInstance(db, &mysql.Config{})
+	if err != nil {
+		return nil, err
+	}
+	m, err := migrate.NewWithDatabaseInstance("file://./internal/migrations", "mysql", driver)
+	if err != nil {
+		return nil, err
+	}
+	if err := m.Up(); err != nil {
+		return nil, err
+	}
 	ctx := context.Background()
 	if err = db.PingContext(ctx); err != nil {
 		return nil, err
