@@ -52,11 +52,15 @@ func readBookRows(rows *sql.Rows) ([]*pb.Book, error) {
 }
 
 func (s *server) Search(ctx context.Context, in *pb.SearchRequest) (*pb.SearchReply, error) {
-	var res []*pb.Book
+	var (
+		res  []*pb.Book
+		rows *sql.Rows
+		err  error
+	)
 	switch req := in.Request.(type) {
 	case *pb.SearchRequest_ByAuthor:
 		log.Printf("Received by author request: %v", req.ByAuthor)
-		rows, err := s.db.QueryContext(ctx, `
+		rows, err = s.db.QueryContext(ctx, `
 			WITH authors AS (
 				SELECT book_id
 				FROM book_list
@@ -67,30 +71,28 @@ func (s *server) Search(ctx context.Context, in *pb.SearchRequest) (*pb.SearchRe
 			GROUP BY book_id
 			HAVING book_id IN (select * from authors);
 		`, req.ByAuthor)
-		if err != nil {
-			return nil, err
-		}
-		if res, err = readBookRows(rows); err != nil {
-			return nil, err
-		}
 	case *pb.SearchRequest_ByContent:
 		log.Printf("Received by content request %v", req.ByContent)
-		rows, err := s.db.QueryContext(ctx, `
+		rows, err = s.db.QueryContext(ctx, `
 			SELECT JSON_ARRAYAGG(author_name) AS authors, book_title, book_content
 			FROM book_list
-			GROUP BY book_id
-			HAVING book_id IN (
-				SELECT id
-				FROM book
-				WHERE content LIKE CONCAT('%', ?, '%')
-			);
+			WHERE book_content LIKE CONCAT('%', ?, '%')
+			GROUP BY book_id;
 		`, req.ByContent)
-		if err != nil {
-			return nil, err
-		}
-		if res, err = readBookRows(rows); err != nil {
-			return nil, err
-		}
+	case *pb.SearchRequest_ByTitle:
+		log.Printf("Received by title request %v", req.ByTitle)
+		rows, err = s.db.QueryContext(ctx, `
+			SELECT JSON_ARRAYAGG(author_name) AS authors, book_title, book_content
+			FROM book_list
+			WHERE book_title LIKE CONCAT('%', ?, '%')
+			GROUP BY book_id;
+		`, req.ByTitle)
+	}
+	if err != nil {
+		return nil, err
+	}
+	if res, err = readBookRows(rows); err != nil {
+		return nil, err
 	}
 	return &pb.SearchReply{Books: res}, nil
 }

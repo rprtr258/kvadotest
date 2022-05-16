@@ -16,6 +16,7 @@ import (
 var (
 	addr   = flag.String("addr", "localhost:50051", "the address to connect to")
 	author = flag.String("author", "", "Author to search")
+	title  = flag.String("title", "", "Title to search")
 	needle = flag.String("needle", "", "Books' content search needle")
 )
 
@@ -43,13 +44,22 @@ func printBooks(books []*pb.Book) {
 	}
 }
 
+func bool2int(x bool) int {
+	if x {
+		return 1
+	} else {
+		return 0
+	}
+}
+
 func main() {
 	flag.Parse()
-	if len(*author) == 0 && len(*needle) == 0 {
-		log.Fatal("Neither -author nor -needle are provided")
+	notEmptyFlags := bool2int(len(*author) != 0) + bool2int(len(*needle) != 0) + bool2int(len(*title) != 0)
+	if notEmptyFlags == 0 {
+		log.Fatal("Provide one of flags: -author, -title or -needle")
 	}
-	if len(*author) != 0 && len(*needle) != 0 {
-		log.Fatal("Both -author and -needle are provided, should be only one")
+	if notEmptyFlags > 1 {
+		log.Fatal("Too many flags provided")
 	}
 	// Set up a connection to the server.
 	conn, err := grpc.Dial(*addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
@@ -60,17 +70,22 @@ func main() {
 	c := pb.NewBookSearchClient(conn)
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
+	var books []*pb.Book
 	if len(*author) != 0 {
-		books, err := doRequest(ctx, c, &pb.SearchRequest{Request: &pb.SearchRequest_ByAuthor{ByAuthor: *author}})
+		books, err = doRequest(ctx, c, &pb.SearchRequest{Request: &pb.SearchRequest_ByAuthor{ByAuthor: *author}})
 		if err != nil {
 			log.Fatalf("couldn't search by author: %v", err)
 		}
-		printBooks(books)
 	} else if len(*needle) != 0 {
-		books, err := doRequest(ctx, c, &pb.SearchRequest{Request: &pb.SearchRequest_ByContent{ByContent: *needle}})
+		books, err = doRequest(ctx, c, &pb.SearchRequest{Request: &pb.SearchRequest_ByContent{ByContent: *needle}})
 		if err != nil {
 			log.Fatalf("couldn't search by content: %v", err)
 		}
-		printBooks(books)
+	} else if len(*title) != 0 {
+		books, err = doRequest(ctx, c, &pb.SearchRequest{Request: &pb.SearchRequest_ByTitle{ByTitle: *title}})
+		if err != nil {
+			log.Fatalf("couldn't search by title: %v", err)
+		}
 	}
+	printBooks(books)
 }

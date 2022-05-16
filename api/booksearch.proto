@@ -12,6 +12,7 @@ message SearchRequest {
   oneof request {
       string by_author = 1;
       string by_content = 2;
+      string by_title = 3;
   }
 }
 
