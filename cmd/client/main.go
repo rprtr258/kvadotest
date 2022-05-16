@@ -8,42 +8,19 @@ import (
 	"log"
 	"time"
 
-	pb "github.com/rprtr258/kvadotest/api"
+	protobuf "github.com/rprtr258/kvadotest/api"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
 
 var (
-	addr   = flag.String("addr", "localhost:50051", "the address to connect to")
-	author = flag.String("author", "", "Author to search")
-	title  = flag.String("title", "", "Title to search")
-	needle = flag.String("needle", "", "Books' content search needle")
+	address = flag.String("addr", "localhost:50051", "Server address to connect to")
+	author  = flag.String("author", "", "Author to search")
+	title   = flag.String("title", "", "Title to search")
+	needle  = flag.String("needle", "", "Books' content search needle")
 )
 
-func doRequest(ctx context.Context, c pb.BookSearchClient, searchRequest *pb.SearchRequest) ([]*pb.Book, error) {
-	r, err := c.Search(ctx, searchRequest)
-	if err != nil {
-		return nil, err
-	}
-	return r.GetBooks(), nil
-}
-
-func printBooks(books []*pb.Book) {
-	if len(books) == 0 {
-		fmt.Println("No books found")
-		return
-	}
-	fmt.Printf("Found %d books (showing only first 20 chars of content):\n", len(books))
-	for _, book := range books {
-		fmt.Printf("Title: %s\n", book.Title)
-		fmt.Println("Authors:")
-		for _, author := range book.Authors {
-			fmt.Printf("    %s\n", author)
-		}
-		fmt.Printf("Content:\n%s\n\n", string([]rune(book.Content)[:20]))
-	}
-}
-
+// Convert bool to int: true to 1, false to 0
 func bool2int(x bool) int {
 	if x {
 		return 1
@@ -52,40 +29,90 @@ func bool2int(x bool) int {
 	}
 }
 
-func main() {
-	flag.Parse()
-	notEmptyFlags := bool2int(len(*author) != 0) + bool2int(len(*needle) != 0) + bool2int(len(*title) != 0)
-	if notEmptyFlags == 0 {
+// Check that exactly one search type is provided
+func validateFlags() {
+	notEmptyFlagsCount := bool2int(len(*author) != 0) + bool2int(len(*needle) != 0) + bool2int(len(*title) != 0)
+	// Check that at least one search type is provided
+	if notEmptyFlagsCount == 0 {
 		log.Fatal("Provide one of flags: -author, -title or -needle")
 	}
-	if notEmptyFlags > 1 {
+	// Check that no more than one search type is provided
+	if notEmptyFlagsCount > 1 {
 		log.Fatal("Too many flags provided")
 	}
+}
+
+// Send protobuf request and get books list from response
+func doRequest(
+	ctx context.Context,
+	client protobuf.BookSearchClient,
+	searchRequest *protobuf.SearchRequest,
+) ([]*protobuf.Book, error) {
+	response, err := client.Search(ctx, searchRequest)
+	if err != nil {
+		return nil, err
+	}
+	return response.GetBooks(), nil
+}
+
+// Print books list
+func printBooks(books []*protobuf.Book) {
+	// If no books were found
+	if len(books) == 0 {
+		fmt.Println("No books found")
+		return
+	}
+	fmt.Printf("Found %d books (showing only first 20 chars of content):\n", len(books))
+	for _, book := range books {
+		// Print book info
+		fmt.Printf("Title: %s\n", book.Title)
+		fmt.Println("Authors:")
+		for _, author := range book.Authors {
+			fmt.Printf("    %s\n", author)
+		}
+		// Get substring of first 20 runes to show
+		contentShowedContentPart := string([]rune(book.Content)[:20])
+		fmt.Printf("Content:\n%s\n\n", contentShowedContentPart)
+	}
+}
+
+// Send request to server and print result using protobuf client, timeouting after 1s
+func run(client protobuf.BookSearchClient) {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+	var (
+		books []*protobuf.Book
+		err   error
+	)
+	if len(*author) != 0 {
+		// Send search by author name request
+		books, err = doRequest(ctx, client, &protobuf.SearchRequest{Request: &protobuf.SearchRequest_ByAuthor{ByAuthor: *author}})
+	} else if len(*needle) != 0 {
+		// Send search by book content request
+		books, err = doRequest(ctx, client, &protobuf.SearchRequest{Request: &protobuf.SearchRequest_ByContent{ByContent: *needle}})
+	} else if len(*title) != 0 {
+		// Send search by book title request
+		books, err = doRequest(ctx, client, &protobuf.SearchRequest{Request: &protobuf.SearchRequest_ByTitle{ByTitle: *title}})
+	}
+	if err != nil {
+		log.Fatalln(err)
+	}
+	printBooks(books)
+}
+
+func main() {
+	flag.Parse()
+	validateFlags()
+
 	// Set up a connection to the server.
-	conn, err := grpc.Dial(*addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	conn, err := grpc.Dial(*address, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		log.Fatalf("failed to connect to server: %v", err)
 	}
 	defer conn.Close()
-	c := pb.NewBookSearchClient(conn)
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-	defer cancel()
-	var books []*pb.Book
-	if len(*author) != 0 {
-		books, err = doRequest(ctx, c, &pb.SearchRequest{Request: &pb.SearchRequest_ByAuthor{ByAuthor: *author}})
-		if err != nil {
-			log.Fatalf("couldn't search by author: %v", err)
-		}
-	} else if len(*needle) != 0 {
-		books, err = doRequest(ctx, c, &pb.SearchRequest{Request: &pb.SearchRequest_ByContent{ByContent: *needle}})
-		if err != nil {
-			log.Fatalf("couldn't search by content: %v", err)
-		}
-	} else if len(*title) != 0 {
-		books, err = doRequest(ctx, c, &pb.SearchRequest{Request: &pb.SearchRequest_ByTitle{ByTitle: *title}})
-		if err != nil {
-			log.Fatalf("couldn't search by title: %v", err)
-		}
-	}
-	printBooks(books)
+
+	// Create protobuf client
+	client := protobuf.NewBookSearchClient(conn)
+
+	run(client)
 }

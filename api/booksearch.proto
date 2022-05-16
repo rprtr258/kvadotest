@@ -4,10 +4,12 @@ option go_package = "github.com/rprtr258/kvadotest";
 
 package booksearch;
 
+// Books search service
 service BookSearch {
   rpc Search (SearchRequest) returns (SearchReply);
 }
 
+// Books search request is either by author, or by content or by title
 message SearchRequest {
   oneof request {
       string by_author = 1;
@@ -16,10 +18,12 @@ message SearchRequest {
   }
 }
 
+// Books list response
 message SearchReply {
   repeated Book books = 1;
 }
 
+// Book description
 message Book {
   repeated string authors = 1;
   string title = 2;

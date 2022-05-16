@@ -1,3 +1,4 @@
+// Unit tests for protobuf server
 package servertest
 
 import (
@@ -10,6 +11,7 @@ import (
 	"github.com/rprtr258/kvadotest/internal/repositories"
 )
 
+// Check that requests trigger according repository methods with according parameters
 func TestSearchRequests(t *testing.T) {
 	type mockRecorder = *repositories.MockBooksRepositoryMockRecorder
 	tests := []struct {
@@ -34,10 +36,15 @@ func TestSearchRequests(t *testing.T) {
 	for i := 0; i < len(tests); i++ {
 		test := &tests[i]
 		t.Run(test.name, func(t *testing.T) {
+			// Init mock book repository
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 			booksRepo := repositories.NewMockBooksRepository(ctrl)
+
+			// Init app server
 			srv := internal.NewServer(booksRepo)
+
+			// Check request handling
 			ctx := context.Background()
 			test.expecting(booksRepo.EXPECT())
 			_, err := srv.Search(ctx, &test.searchRequest)
