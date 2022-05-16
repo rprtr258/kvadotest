@@ -17,7 +17,8 @@ import (
 )
 
 var (
-	port = flag.Int("port", 50051, "The server port")
+	port = flag.Int("port", 50051, "Server port")
+	db   = flag.String("db", "root:pass@/books?multiStatements=true", "Database DSN")
 )
 
 func main() {
@@ -27,7 +28,7 @@ func main() {
 		log.Fatalf("failed to listen: %v", err)
 	}
 	s := grpc.NewServer()
-	booksRepo, err := repositories.NewMysqlRepository("root:pass@/books?multiStatements=true")
+	booksRepo, err := repositories.NewMysqlRepository(*db)
 	if err != nil {
 		log.Fatalf("failed to connect to database: %v", err)
 	}

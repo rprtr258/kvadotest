@@ -20,13 +20,9 @@ services:
     build:
       context: ../
       dockerfile: deployments/Dockerfile.server
-    # ports:
-    #  - "9090:9090"
-    # environment:
-    #   HTTP_ADDR: ":9090"
-    #   PG_URL: "postgres://postgres:postgres@postgres/callback?sslmode=disable"
-    #   PG_MIGRATIONS_PATH: "file://../../internal/pg/migrations"
-    command: ["./wait-for-it.sh", "db:3306", "--", "./server"]
+    ports:
+     - 50051:50051
+    command: ["./wait-for-it.sh", "db:3306", "--", "./server", "-port", "50051", "-db", "root:pass@(db)/books?multiStatements=true"]
 
 volumes:
   mysqldbvolume:
