@@ -3,7 +3,6 @@ package repositories
 import (
 	"context"
 	"database/sql"
-	"database/sql/driver"
 	"encoding/json"
 	"log"
 	"time"
@@ -27,19 +26,17 @@ func NewMysqlRepository(dataSourceName string) (*MysqlBooksRepository, error) {
 	db.SetMaxOpenConns(10)
 	db.SetMaxIdleConns(10)
 	ctx := context.Background()
+	const maxAttempts = 10
 	attempts := 0
 	for {
+		log.Printf("Trying to connect database, attempt #%d", attempts)
 		if err = db.PingContext(ctx); err != nil {
-			if err == driver.ErrBadConn {
-				attempts++
-				log.Printf("Failed to connect, attempt #%d", attempts)
-				time.Sleep(time.Second)
-			} else {
+			log.Printf("Failed to connect database, attempt #%d: %v", attempts, err)
+			attempts++
+			if attempts > maxAttempts {
 				return nil, err
 			}
-			if attempts == 10 {
-				return nil, err
-			}
+			time.Sleep(time.Second)
 		} else {
 			break
 		}
