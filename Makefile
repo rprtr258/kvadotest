@@ -23,3 +23,15 @@ titleclient:
 
 needleclient:
 	go run cmd/client/main.go -needle "о"
+
+authordockerclient:
+	docker build -t client -f deployments/Dockerfile.client .
+	docker run --network host client -author "Rowling"
+
+titledockerclient:
+	docker build -t client -f deployments/Dockerfile.client .
+	docker run --network host client -title "Python"
+
+needledockerclient:
+	docker build -t client -f deployments/Dockerfile.client .
+	docker run --network host client -needle "о"
