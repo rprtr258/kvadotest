@@ -1,6 +1,9 @@
 api/booksearch_grpc.pb.go api/booksearch.pb.go: api/booksearch.proto
 	protoc --go_out=. --go_opt=paths=source_relative --go-grpc_out=. --go-grpc_opt=paths=source_relative api/booksearch.proto
 
+filldb:
+	docker exec -i mysql mysql -uroot -p"pass" -D books < assets/sample_db.sql
+
 protoc: api/booksearch_grpc.pb.go api/booksearch.pb.go
 
 dockerrun:
