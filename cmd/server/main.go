@@ -7,6 +7,9 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"os"
+	"os/signal"
+	"syscall"
 
 	pb "github.com/rprtr258/kvadotest/api"
 	"github.com/rprtr258/kvadotest/internal/repositories"
@@ -68,9 +71,14 @@ func main() {
 		booksRepo: booksRepo,
 	}
 	pb.RegisterBookSearchServer(s, &srv)
-	log.Printf("server listening at %v", lis.Addr())
-	if err := s.Serve(lis); err != nil {
-		log.Fatalf("failed to serve: %v", err)
-	}
-	// TODO: graceful exit
+	go func() {
+		log.Printf("server listening at %v", lis.Addr())
+		if err := s.Serve(lis); err != nil {
+			log.Fatalf("failed to serve: %v", err)
+		}
+	}()
+	sig := make(chan os.Signal, 1)
+	signal.Notify(sig, syscall.SIGINT)
+	<-sig
+	s.GracefulStop()
 }
