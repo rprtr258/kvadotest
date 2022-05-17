@@ -20,7 +20,7 @@ var (
 	needle  = flag.String("needle", "", "Books' content search needle")
 )
 
-// Convert bool to int: true to 1, false to 0
+// bool2int converts true to 1, false to 0
 func bool2int(x bool) int {
 	if x {
 		return 1
@@ -29,7 +29,7 @@ func bool2int(x bool) int {
 	}
 }
 
-// Check that exactly one search type is provided
+// validateFlags checks that exactly one search type is provided
 func validateFlags() {
 	notEmptyFlagsCount := bool2int(len(*author) != 0) + bool2int(len(*needle) != 0) + bool2int(len(*title) != 0)
 	// Check that at least one search type is provided
@@ -42,7 +42,7 @@ func validateFlags() {
 	}
 }
 
-// Send protobuf request and get books list from response
+// doRequest sends protobuf request and get books list from response
 func doRequest(
 	ctx context.Context,
 	client protobuf.BookSearchClient,
@@ -55,7 +55,7 @@ func doRequest(
 	return response.GetBooks(), nil
 }
 
-// Print books list
+// printBooks prints books list
 func printBooks(books []*protobuf.Book) {
 	// If no books were found
 	if len(books) == 0 {
@@ -76,7 +76,7 @@ func printBooks(books []*protobuf.Book) {
 	}
 }
 
-// Send request to server and print result using protobuf client, timeouting after 1s
+// run sends request to server and print result using protobuf client, timeouting after 1s
 func run(client protobuf.BookSearchClient) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()

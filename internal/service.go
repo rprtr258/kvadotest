@@ -10,20 +10,20 @@ import (
 	"github.com/rprtr258/kvadotest/internal/repositories"
 )
 
-// App server to use as grpc server
+// Server is app server to use as grpc server
 type Server struct {
 	protobuf.UnimplementedBookSearchServer
 	booksRepo repositories.BooksRepository
 }
 
-// Create new app server using initialized books repository
+// NewServer creates new app server using initialized books repository
 func NewServer(booksRepo repositories.BooksRepository) Server {
 	return Server{
 		booksRepo: booksRepo,
 	}
 }
 
-// Handle grpc search request
+// Search handles grpc search request
 func (s *Server) Search(ctx context.Context, in *protobuf.SearchRequest) (*protobuf.SearchReply, error) {
 	var (
 		res []repositories.Book

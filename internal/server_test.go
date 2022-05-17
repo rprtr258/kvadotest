@@ -11,7 +11,7 @@ import (
 	pb "github.com/rprtr258/kvadotest/pkg/api"
 )
 
-// Check that requests trigger according repository methods with according parameters
+// TestSearchRequests checks that requests trigger according repository methods with according parameters
 func TestSearchRequests(t *testing.T) {
 	type mockRecorder = *repositories.MockBooksRepositoryMockRecorder
 	tests := []struct {
@@ -55,7 +55,7 @@ func TestSearchRequests(t *testing.T) {
 	}
 }
 
-// Check that book from repository gets to response
+// TestSearchResponse checks that book from repository gets to response
 func TestSearchResponse(t *testing.T) {
 	type mockRecorder = *repositories.MockBooksRepositoryMockRecorder
 	// Init mock book repository
@@ -90,7 +90,7 @@ func TestSearchResponse(t *testing.T) {
 	}
 }
 
-// Check that error from repository gets to response
+// TestRepositoryErrorHandling checks that error from repository gets to response
 func TestRepositoryErrorHandling(t *testing.T) {
 	type mockRecorder = *repositories.MockBooksRepositoryMockRecorder
 	// Init mock book repository

@@ -5,15 +5,15 @@ package repositories
 
 import "context"
 
-// Book POD
+// Book is a POD of book data
 type Book struct {
 	Title   string
 	Content string
 	Authors []string
 }
 
-// Repository that allows to search list of books by author, title or content.
-// Also close when it is no longer needed.
+// BooksRepository is a repository that allows to search list of books by author, title or content.
+// Also it must be closed as soon as it is no longer needed.
 type BooksRepository interface {
 	// Search list of books by author
 	SearchByAuthor(context.Context, string) ([]Book, error)

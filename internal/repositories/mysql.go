@@ -14,13 +14,13 @@ import (
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 )
 
-// Database repository struct implementing BooksRepository, holding database connection
+// MysqlBooksRepository is a database repository struct implementing BooksRepository, holding database connection
 type MysqlBooksRepository struct {
 	db *sql.DB
 }
 
-// Connect to database and create new repository from it. If connection fails it retries up to 10 times.
-// Then it runs migrations to update database schema
+// NewMysqlRepository connects to database and create new repository from it.
+// If connection fails it retries up to 10 times. Then it runs migrations to update database schema
 func NewMysqlRepository(dataSourceName string) (*MysqlBooksRepository, error) {
 	// Connect to database
 	db, err := sql.Open("mysql", dataSourceName)
@@ -68,7 +68,7 @@ func NewMysqlRepository(dataSourceName string) (*MysqlBooksRepository, error) {
 	}, nil
 }
 
-// Helper function to read list of books from database response into Book slice
+// readBookRows reads list of books from database response into Book slice
 func readBookRows(rows *sql.Rows) ([]Book, error) {
 	var (
 		authors     []byte
@@ -97,7 +97,7 @@ func readBookRows(rows *sql.Rows) ([]Book, error) {
 	return res, nil
 }
 
-// Run query that returns books list with req parameter
+// query runs SQL query that returns books list using req parameter
 func (repo MysqlBooksRepository) query(ctx context.Context, req, sqlQuery string) ([]Book, error) {
 	var (
 		rows *sql.Rows
@@ -110,7 +110,7 @@ func (repo MysqlBooksRepository) query(ctx context.Context, req, sqlQuery string
 	return readBookRows(rows)
 }
 
-// Search all books with author names containing req as substring
+// SearchByAuthor searches all books with author names containing req as substring
 func (repo MysqlBooksRepository) SearchByAuthor(ctx context.Context, req string) ([]Book, error) {
 	return repo.query(ctx, req, `
 		WITH authors AS (
@@ -125,7 +125,7 @@ func (repo MysqlBooksRepository) SearchByAuthor(ctx context.Context, req string)
 	`)
 }
 
-// Search all books with title containing req as substring
+// SearchByTitle searches all books with title containing req as substring
 func (repo MysqlBooksRepository) SearchByTitle(ctx context.Context, req string) ([]Book, error) {
 	return repo.query(ctx, req, `
 		SELECT JSON_ARRAYAGG(author_name) AS authors, book_title, book_content
@@ -135,7 +135,7 @@ func (repo MysqlBooksRepository) SearchByTitle(ctx context.Context, req string) 
 	`)
 }
 
-// Search all books with content containing req as substring
+// SearchByContent searches all books with content containing req as substring
 func (repo MysqlBooksRepository) SearchByContent(ctx context.Context, req string) ([]Book, error) {
 	return repo.query(ctx, req, `
 		SELECT JSON_ARRAYAGG(author_name) AS authors, book_title, book_content
@@ -145,7 +145,7 @@ func (repo MysqlBooksRepository) SearchByContent(ctx context.Context, req string
 	`)
 }
 
-// Close database conneection
+// Close closes database conneection
 func (repo MysqlBooksRepository) Close() error {
 	return repo.db.Close()
 }
