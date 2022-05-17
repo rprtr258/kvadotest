@@ -10,9 +10,9 @@ import (
 	"os/signal"
 	"syscall"
 
-	protobuf "github.com/rprtr258/kvadotest/api"
 	"github.com/rprtr258/kvadotest/internal"
 	"github.com/rprtr258/kvadotest/internal/repositories"
+	protobuf "github.com/rprtr258/kvadotest/pkg/api"
 	"google.golang.org/grpc"
 )
 

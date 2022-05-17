@@ -1,8 +1,8 @@
-api/booksearch_grpc.pb.go api/booksearch.pb.go: api/booksearch.proto
-	protoc --go_out=. --go_opt=paths=source_relative --go-grpc_out=. --go-grpc_opt=paths=source_relative api/booksearch.proto
+pkg/api/booksearch_grpc.pb.go pkg/api/booksearch.pb.go: api/booksearch.proto
+	protoc --go_out=pkg --go_opt=paths=source_relative --go-grpc_out=pkg --go-grpc_opt=paths=source_relative api/booksearch.proto
 
 # Generate grpc files from protobuf description
-protoc: api/booksearch_grpc.pb.go api/booksearch.pb.go
+protoc: pkg/api/booksearch_grpc.pb.go pkg/api/booksearch.pb.go
 
 # Generate mocks
 mockgen:
@@ -19,6 +19,10 @@ filldb:
 # Run dockerized database and server
 dockerrun: protoc
 	docker-compose -f deployments/docker-compose.yml up --build
+
+# Run dockerized database
+dbdocker:
+	docker-compose -f deployments/docker-compose.yml up db
 
 # Run local server
 server: protoc

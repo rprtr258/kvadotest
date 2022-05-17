@@ -7,8 +7,8 @@ import (
 	"testing"
 
 	"github.com/golang/mock/gomock"
-	pb "github.com/rprtr258/kvadotest/api"
 	"github.com/rprtr258/kvadotest/internal/repositories"
+	pb "github.com/rprtr258/kvadotest/pkg/api"
 )
 
 // Check that requests trigger according repository methods with according parameters

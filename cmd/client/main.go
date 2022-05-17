@@ -8,7 +8,7 @@ import (
 	"log"
 	"time"
 
-	protobuf "github.com/rprtr258/kvadotest/api"
+	protobuf "github.com/rprtr258/kvadotest/pkg/api"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )

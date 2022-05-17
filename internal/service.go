@@ -5,7 +5,7 @@ import (
 	"context"
 	"log"
 
-	protobuf "github.com/rprtr258/kvadotest/api"
+	protobuf "github.com/rprtr258/kvadotest/pkg/api"
 
 	"github.com/rprtr258/kvadotest/internal/repositories"
 )
