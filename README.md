@@ -40,4 +40,11 @@ Where `<CUSTOM SEARCH>` is one of:
 - `-title "TITLE"` to search by title
 - `-needle "NEEDLE"` to search by content
 
+## How to run tests
+
+To run unit tests and check coverage:
+```bash
+make tests
+```
+
 You can find some other commands in [Makefile](Makefile)

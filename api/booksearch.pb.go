@@ -20,6 +20,7 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+// Books search request is either by author, or by content or by title
 type SearchRequest struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -114,6 +115,7 @@ func (*SearchRequest_ByContent) isSearchRequest_Request() {}
 
 func (*SearchRequest_ByTitle) isSearchRequest_Request() {}
 
+// Books list response
 type SearchReply struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -161,6 +163,7 @@ func (x *SearchReply) GetBooks() []*Book {
 	return nil
 }
 
+// Book description
 type Book struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache

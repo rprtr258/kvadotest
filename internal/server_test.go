@@ -3,6 +3,7 @@ package internal
 
 import (
 	"context"
+	"errors"
 	"testing"
 
 	"github.com/golang/mock/gomock"
@@ -51,5 +52,61 @@ func TestSearchRequests(t *testing.T) {
 				t.Fatalf("search request #%d failed: %v", i, err)
 			}
 		})
+	}
+}
+
+// Check that book from repository gets to response
+func TestSearchResponse(t *testing.T) {
+	type mockRecorder = *repositories.MockBooksRepositoryMockRecorder
+	// Init mock book repository
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	booksRepo := repositories.NewMockBooksRepository(ctrl)
+
+	// Init app server
+	srv := NewServer(booksRepo)
+
+	// Check request handling
+	ctx := context.Background()
+	book := repositories.Book{
+		Title:   "title",
+		Content: "content",
+		Authors: []string{"author"},
+	}
+	booksRepo.EXPECT().SearchByContent(gomock.Any(), "needle").Return([]repositories.Book{book}, nil)
+	response, err := srv.Search(ctx, &pb.SearchRequest{Request: &pb.SearchRequest_ByContent{ByContent: "needle"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(response.Books) != 1 {
+		t.Fatal("response len must be 1")
+	}
+	responseBook := response.Books[0]
+	if responseBook.Title != book.Title ||
+		responseBook.Content != book.Content ||
+		len(responseBook.Authors) != 1 ||
+		responseBook.Authors[0] != book.Authors[0] {
+		t.Fatalf("expected %v, found %v", book, responseBook)
+	}
+}
+
+// Check that error from repository gets to response
+func TestRepositoryErrorHandling(t *testing.T) {
+	type mockRecorder = *repositories.MockBooksRepositoryMockRecorder
+	// Init mock book repository
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	booksRepo := repositories.NewMockBooksRepository(ctrl)
+
+	// Init app server
+	srv := NewServer(booksRepo)
+
+	// Check request handling
+	ctx := context.Background()
+	expectedError := errors.New("error")
+	booksRepo.EXPECT().SearchByContent(gomock.Any(), "needle").Return(nil, expectedError)
+	_, err := srv.Search(ctx, &pb.SearchRequest{Request: &pb.SearchRequest_ByContent{ByContent: "needle"}})
+	if err != expectedError {
+		t.Fatalf("expected %v, found %v", expectedError, err)
 	}
 }
