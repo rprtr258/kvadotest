@@ -1,5 +1,5 @@
 // Unit tests for protobuf server
-package servertest
+package internal
 
 import (
 	"context"
@@ -7,7 +7,6 @@ import (
 
 	"github.com/golang/mock/gomock"
 	pb "github.com/rprtr258/kvadotest/api"
-	"github.com/rprtr258/kvadotest/internal"
 	"github.com/rprtr258/kvadotest/internal/repositories"
 )
 
@@ -42,7 +41,7 @@ func TestSearchRequests(t *testing.T) {
 			booksRepo := repositories.NewMockBooksRepository(ctrl)
 
 			// Init app server
-			srv := internal.NewServer(booksRepo)
+			srv := NewServer(booksRepo)
 
 			// Check request handling
 			ctx := context.Background()
